@@ -9,8 +9,8 @@ import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 
-import { useEffect } from 'react';
-import { connect } from '@/androidTvRemote';
+import { useAndroidTvRemote } from '@/hooks/use-android-tv-remote';
+
 
 function getDevMenuHint() {
   if (Platform.OS === 'web') {
@@ -32,13 +32,26 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
+  const { clientStatus, appState, client } = useAndroidTvRemote("10.10.8.53", 6467, {
+    onConnect() {
+      console.log("CONNECTED")
+    },
+    onError(err) {
+      console.log("ERROR")
+      console.log(err)
+    },
+    onClose() {
+      console.log("CLOSED")
+    },
+  })
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ThemedView style={styles.heroSection}>
           <AnimatedIcon />
           <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
+            {clientStatus}
           </ThemedText>
         </ThemedView>
 

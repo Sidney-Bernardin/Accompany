@@ -1,46 +1,56 @@
-import TcpSockets from "react-native-tcp-socket"
 import forge from "node-forge"
-import crypto from "crypto"
 import { Platform } from "react-native";
 
 import * as SecureStore from "@/secureStore";
 
 
-function validateCertificate(certificate: SecureStore.Certificate): boolean {
+export async function loadCertificates(): Promise<SecureStore.Certificate> {
+  console.log("b1")
+  const certificate = await SecureStore.getCertificate()
+
+  // Validate the certificate.
   try {
+    if (!certificate)
+      throw Error()
+
+    // Check PEM formatting. (throws on fail)
+    console.log("b2")
     const cert = forge.pki.certificateFromPem(certificate.certPem)
 
     // Check expiry.
+    console.log("b3")
     const deadline = cert.validity.notAfter.getTime() - (7 * 24 * 60 * 60 * 100) // Normal deadline with a 7 day buffer.
     const now = (new Date()).getTime()
     if (now > deadline) {
-      return false
+      throw Error()
     }
-
   } catch (err) {
-    // Failed to parse certificate.
-    return false
+    console.log("b4")
+    return generateCertificate()
   }
 
-  return true
+  return certificate
 }
 
 async function generateCertificate() {
 
   // Create public and private keys.
+  console.log("b5")
   const keys = forge.pki.rsa.generateKeyPair(2048, 65537)
 
   // Create certificate.
+  console.log("b6")
   const cert = forge.pki.createCertificate()
   cert.publicKey = keys.publicKey
-  cert.serialNumber = crypto.randomBytes(16).toString("hex")
+  cert.serialNumber = forge.util.bytesToHex(forge.random.getBytesSync(16))
   cert.validity.notBefore = new Date()
   cert.validity.notAfter = new Date()
   cert.validity.notAfter.setFullYear(cert.validity.notAfter.getFullYear() + 20)
+  console.log("b7")
   const certFields: forge.pki.CertificateField[] = [
-    { name: "commonName", value: `Accompany-Remote-${Platform.OS}-${crypto.randomBytes(16).toString("hex")}` },
-    { name: "organizationName", value: "AccompanyRemoteApp" },
-    { name: "contryName", value: "US" },
+    { shortName: "CN", value: `Accompany-Remote-${Platform.OS}-${forge.util.bytesToHex(forge.random.getBytesSync(16))}` },
+    { shortName: "O", value: "AccompanyRemoteApp" },
+    { shortName: "C", value: "US" },
   ]
   cert.setSubject(certFields)
   cert.setIssuer(certFields)
@@ -51,34 +61,17 @@ async function generateCertificate() {
   ])
 
   // Sign the certificate.
+  console.log("b8")
   cert.sign(keys.privateKey, forge.md.sha256.create())
 
+  console.log("b9")
   const certificate: SecureStore.Certificate = {
     certPem: forge.pki.certificateToPem(cert),
     certPrivateKeyPem: forge.pki.privateKeyToPem(keys.privateKey),
   }
 
+  console.log("b10")
   await SecureStore.setCertificate(certificate)
 
   return certificate
-}
-
-export async function createConnection(host: string, port: number): TcpSockets.Socket {
-
-  let cert = await SecureStore.getCertificate()
-  if (!cert || !validateCertificate(cert))
-    cert = await generateCertificate()
-
-  const client = TcpSockets.createConnection({
-    host: "10.10.8.56",
-    port: 6467,
-  }, () => { })
-
-  client.on("data", (d) => { })
-
-  client.on("error", () => { })
-
-  client.on("close", () => { })
-
-  return client
 }
