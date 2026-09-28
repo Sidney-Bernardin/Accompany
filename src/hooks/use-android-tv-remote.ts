@@ -1,12 +1,12 @@
 import { AppState } from "react-native"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState, version } from "react"
 
 import TcpSockets from "react-native-tcp-socket"
 import { Buffer } from "@craftzdog/react-native-buffer"
 
 import { loadCertificates } from "@/androidTvRemote/certificates"
 import * as PB from "@bufbuild/protobuf"
-import { Message_Status, Message_StatusSchema, MessageSchema } from "@/androidTvRemote/gen/proto/pair_pb"
+import { Message_Status, Message_StatusSchema, MessageSchema, PairingRequestSchema } from "@/androidTvRemote/gen/proto/pair_pb"
 
 type Callbacks = Partial<{
   onConnect: () => void,
@@ -24,11 +24,9 @@ export function useAndroidTvRemote(host: string, port: number, callbacks: Callba
   const connect = useCallback(async () => {
     setClientStatus("CONNECTING")
 
-    console.log("B")
     const cert = await loadCertificates()
 
     // Connect to the TV box.
-    console.log("C")
     client.current = TcpSockets.connectTLS({
       host,
       port,
@@ -39,16 +37,40 @@ export function useAndroidTvRemote(host: string, port: number, callbacks: Callba
       setClientStatus("CONNECTED")
       callbacks.onConnect?.()
 
-      // PB.toBinary(MessageSchema, {
-      //   protocolVersion: 2,
-      //   status: Message_Status.OK,
-      //   pairingRequest: { serviceName: }
-      // })
+      const message = PB.toBinary(MessageSchema, {
+        $typeName: "example.Message",
+        protocolVersion: 2,
+        status: Message_Status.OK,
+        pairingRequest: {
+          $typeName: "example.PairingRequest",
+          serviceName: "accompany-remote",
+          clientName: "TestClientName",
+        },
+      })
+
+      let len = message.length
+      const varint: number[] = []
+
+      // If len is more then 7 bits long, it's to big to be represented as one varint-byte.
+      while (len > 0b1111111) {
+
+        // Get the first 7 bits, then remove them.
+        const first7bits = len & 0b1111111
+        len = len >>> 7
+
+        // Add a continuaton bit.
+        const varintByte = first7bits | 0b10000000
+
+        varint.push(varintByte)
+      }
+      varint.push(len)
+
+      client.current?.write(Buffer.concat([Buffer.from(varint), message]), undefined)
     })
 
     const buffer = Buffer.alloc(0)
     client.current.on("data", (packet) => {
-      console.log(`packet: ${packet}`)
+      console.log(`packet len=${packet.length} {${new Uint8Array(packet as unknown as Buffer)}}`)
     })
 
     client.current.on("error", (err) => {
@@ -70,7 +92,6 @@ export function useAndroidTvRemote(host: string, port: number, callbacks: Callba
   }
 
   useEffect(() => {
-    console.log("A")
     connect()
 
     // Connect and disconnect when the app state changes.

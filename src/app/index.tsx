@@ -37,7 +37,6 @@ export default function HomeScreen() {
       console.log("CONNECTED")
     },
     onError(err) {
-      console.log("ERROR")
       console.log(err)
     },
     onClose() {
