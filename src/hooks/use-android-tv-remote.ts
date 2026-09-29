@@ -114,6 +114,8 @@ export function useAndroidTvRemote(host: string, port: number, callbacks: Callba
         disconnect()
         return
       }
+
+      buffer = buffer.subarray(lenOffset + len)
     })
 
     client.current.on("error", (err) => {
