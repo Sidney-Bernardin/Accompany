@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@bufbuild/protoc-gen-es": "^2.15.0",
+    "@types/node": "^26.6.3",
     "@types/react": "~19.2.2",
     "typescript": "~6.0.3"
   },

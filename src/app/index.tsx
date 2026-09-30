@@ -10,6 +10,7 @@ import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 
 import { useAndroidTvRemote } from '@/hooks/use-android-tv-remote';
+import { useState } from 'react';
 
 
 function getDevMenuHint() {
@@ -32,12 +33,9 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
-  const { clientStatus, appState, client } = useAndroidTvRemote("10.10.8.53", 6467, {
+  const { clientStatus, appState, client } = useAndroidTvRemote("10.10.8.61", 6467, {
     onConnect() {
       console.log("CONNECTED")
-    },
-    onError(err) {
-      console.log(err)
     },
     onClose() {
       console.log("CLOSED")

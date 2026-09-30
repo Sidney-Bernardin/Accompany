@@ -5,8 +5,8 @@ import TcpSockets from "react-native-tcp-socket"
 import { Buffer } from "@craftzdog/react-native-buffer"
 
 import { loadCertificates } from "@/androidTvRemote/certificates"
-import * as PB from "@bufbuild/protobuf"
 import { Message_Status, MessageSchema } from "@/androidTvRemote/gen/proto/pair_pb"
+import { decodeMsg, encodeMsg } from "@/androidTvRemote/serial"
 
 type Callbacks = Partial<{
   onConnect: () => void,
@@ -20,30 +20,31 @@ export function useAndroidTvRemote(host: string, port: number, callbacks: Callba
 
   const appState = useRef(AppState.currentState)
   const client = useRef<TcpSockets.Socket | undefined>(undefined)
+  let buffer = useRef(Buffer.alloc(0))
 
-  const disconnect = () => {
+  const disconnect = useCallback(() => {
     client.current?.destroy()
     client.current = undefined
+    buffer.current = Buffer.alloc(0)
     setClientStatus("DISCONNECTED")
-  }
+  }, [])
 
   const connect = useCallback(async () => {
     setClientStatus("CONNECTING")
 
-    const cert = await loadCertificates()
+    const { certPem, certPrivateKeyPem } = await loadCertificates()
 
     // Connect to the TV box.
     client.current = TcpSockets.connectTLS({
-      host,
-      port,
-      ca: cert.certPem,
-      cert: cert.certPem,
-      key: cert.certPrivateKeyPem,
+      host, port,
+      ca: certPem,
+      cert: certPem,
+      key: certPrivateKeyPem,
     }, () => {
       setClientStatus("CONNECTED")
       callbacks.onConnect?.()
 
-      const message = PB.toBinary(MessageSchema, {
+      client.current!.write(encodeMsg(MessageSchema, {
         $typeName: "example.Message",
         protocolVersion: 2,
         status: Message_Status.OK,
@@ -52,75 +53,32 @@ export function useAndroidTvRemote(host: string, port: number, callbacks: Callba
           serviceName: "accompany-remote",
           clientName: "TestClientName",
         },
-      })
-
-      let len = message.length
-      const varint: number[] = []
-
-      // If len is more then 7 bits long, it's to big to be represented as one varint-byte.
-      while (len > 0b01111111) {
-
-        // Get the first 7 bits to the right, then remove them.
-        const first7bits = len & 0b01111111
-        len = len >>> 7
-
-        // Add a continuation bit.
-        const varintByte = first7bits | 0b10000000
-
-        varint.push(varintByte)
-      }
-      varint.push(len)
-
-      client.current?.write(Buffer.concat([Buffer.from(varint), message]), undefined)
+      }), undefined)
     })
 
-    let buffer = Buffer.alloc(0)
     client.current.on("data", (packet) => {
-      console.log(`packet len=${packet.length} {${new Uint8Array(packet as unknown as Buffer)}}`)
-      buffer = Buffer.concat([buffer, packet as Uint8Array])
+      console.debug(`packet[${packet.length}]={${new Uint8Array(packet as unknown as Buffer)}}`)
+      buffer.current = Buffer.concat([buffer.current, packet as Uint8Array])
 
-      let len = 0
-      let lenOffset = 0
-      let lenComplete = false
-
-      let shift = 0
-      for (let i = 0; i < buffer.length; i++) {
-        const byte = buffer[i]
-
-        // Get the first 7 bits to the right, then shift them into place.
-        const first7bits = byte & 0b01111111
-        first7bits << shift
-        shift += 7
-
-        len += first7bits
-        lenOffset += 1
-
-        // Get the continuation bit, then if it's 0, the decoding is complete.
-        const continuationBit = byte & 0b10000000
-        if (continuationBit === 0) {
-          lenComplete = true
-          break
-        }
-      }
-
-      if (!lenComplete) return
-      if (buffer.length < lenOffset + len) return
-
-      const msgBytes = buffer.subarray(lenOffset, lenOffset + len)
-      const msg = PB.fromBinary(MessageSchema, msgBytes)
-      console.log(msg)
-
-      if (msg.status !== Message_Status.OK) {
-        disconnect()
+      var [msg, len, offset] = decodeMsg(MessageSchema, buffer.current)
+      if (!msg)
         return
-      }
 
-      buffer = buffer.subarray(lenOffset + len)
+      console.debug(msg)
+
+      try {
+        if (msg.status !== Message_Status.OK) {
+          disconnect()
+          return
+        }
+      } finally {
+        buffer.current = buffer.current.subarray(offset + len)
+      }
     })
 
     client.current.on("error", (err) => {
       console.error(err)
-      callbacks.onError?.(err)
+      disconnect()
     })
 
     client.current.on("close", () => {
