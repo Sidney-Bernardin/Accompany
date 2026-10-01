@@ -2,7 +2,7 @@ import { Buffer } from "@craftzdog/react-native-buffer"
 import * as PB from "@bufbuild/protobuf"
 import * as Varint from "@/varint"
 
-export function encodeMsg<Desc extends PB.DescMessage>(schema: Desc, message: any): Uint8Array {
+export function encodeMsg<Desc extends PB.DescMessage>(schema: Desc, message: PB.MessageShape<Desc>): Uint8Array {
   const msgBytes = PB.toBinary(schema, message)
   const varint = Varint.encode(msgBytes.length)
 

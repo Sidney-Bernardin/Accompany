@@ -5,7 +5,7 @@ import TcpSockets from "react-native-tcp-socket"
 import { Buffer } from "@craftzdog/react-native-buffer"
 
 import { loadCertificates } from "@/androidTvRemote/certificates"
-import { Message_Status, MessageSchema } from "@/androidTvRemote/gen/proto/pair_pb"
+import { Message_Status, MessageSchema, Options_Encoding_EncodingType, Options_RoleType } from "@/androidTvRemote/gen/proto/pair_pb"
 import { decodeMsg, encodeMsg } from "@/androidTvRemote/serial"
 
 type Callbacks = Partial<{
@@ -16,7 +16,7 @@ type Callbacks = Partial<{
 }>
 
 export function useAndroidTvRemote(host: string, port: number, callbacks: Callbacks) {
-  const [clientStatus, setClientStatus] = useState<"DISCONNECTED" | "CONNECTING" | "CONNECTED">("DISCONNECTED")
+  const [status, setStatus] = useState<"DISCONNECTED" | "CONNECTING" | "CONNECTED" | "SECRETING">("DISCONNECTED")
 
   const appState = useRef(AppState.currentState)
   const client = useRef<TcpSockets.Socket | undefined>(undefined)
@@ -26,11 +26,11 @@ export function useAndroidTvRemote(host: string, port: number, callbacks: Callba
     client.current?.destroy()
     client.current = undefined
     buffer.current = Buffer.alloc(0)
-    setClientStatus("DISCONNECTED")
+    setStatus("DISCONNECTED")
   }, [])
 
   const connect = useCallback(async () => {
-    setClientStatus("CONNECTING")
+    setStatus("CONNECTING")
 
     const { certPem, certPrivateKeyPem } = await loadCertificates()
 
@@ -41,7 +41,7 @@ export function useAndroidTvRemote(host: string, port: number, callbacks: Callba
       cert: certPem,
       key: certPrivateKeyPem,
     }, () => {
-      setClientStatus("CONNECTED")
+      setStatus("CONNECTED")
       callbacks.onConnect?.()
 
       client.current!.write(encodeMsg(MessageSchema, {
@@ -71,6 +71,44 @@ export function useAndroidTvRemote(host: string, port: number, callbacks: Callba
           disconnect()
           return
         }
+
+        if (msg.pairingRequestAck)
+          client.current!.write(encodeMsg(MessageSchema, {
+            $typeName: "example.Message",
+            protocolVersion: 2,
+            status: Message_Status.OK,
+            options: {
+              $typeName: "example.Options",
+              preferredRole: Options_RoleType.INPUT,
+              outputEncodings: [],
+              inputEncodings: [
+                {
+                  $typeName: "example.Options.Encoding",
+                  type: Options_Encoding_EncodingType.HEXADECIMAL,
+                  symbolLength: 6,
+                },
+              ],
+            }
+          }))
+
+        if (msg.options)
+          client.current!.write(encodeMsg(MessageSchema, {
+            $typeName: "example.Message",
+            protocolVersion: 2,
+            status: Message_Status.OK,
+            configuration: {
+              $typeName: "example.Configuration",
+              clientRole: Options_RoleType.INPUT,
+              encoding: {
+                $typeName: "example.Options.Encoding",
+                type: Options_Encoding_EncodingType.HEXADECIMAL,
+                symbolLength: 6,
+              },
+            }
+          }))
+
+        if (msg.configurationAck)
+          setStatus("SECRETING")
       } finally {
         buffer.current = buffer.current.subarray(offset + len)
       }
@@ -83,9 +121,13 @@ export function useAndroidTvRemote(host: string, port: number, callbacks: Callba
 
     client.current.on("close", () => {
       client.current = undefined
-      setClientStatus("DISCONNECTED")
+      setStatus("DISCONNECTED")
       callbacks.onClose?.()
     })
+  }, [])
+
+  const sendSecret = useCallback((inp: any) => {
+    console.log(inp)
   }, [])
 
   useEffect(() => {
@@ -105,5 +147,5 @@ export function useAndroidTvRemote(host: string, port: number, callbacks: Callba
     }
   }, [])
 
-  return { clientStatus, appState, client }
+  return { status, appState, client, sendSecret }
 }

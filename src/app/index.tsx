@@ -1,16 +1,14 @@
 import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, TextInput, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Colors, BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 
 import { useAndroidTvRemote } from '@/hooks/use-android-tv-remote';
-import { useState } from 'react';
 
 
 function getDevMenuHint() {
@@ -33,7 +31,7 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
-  const { clientStatus, appState, client } = useAndroidTvRemote("10.10.8.61", 6467, {
+  const { status, appState, client, sendSecret } = useAndroidTvRemote("10.10.8.61", 6467, {
     onConnect() {
       console.log("CONNECTED")
     },
@@ -48,25 +46,31 @@ export default function HomeScreen() {
         <ThemedView style={styles.heroSection}>
           <AnimatedIcon />
           <ThemedText type="title" style={styles.title}>
-            {clientStatus}
+            Accompany
           </ThemedText>
         </ThemedView>
 
         <ThemedText type="code" style={styles.code}>
-          get started
+          {status}
         </ThemedText>
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
+        {
+          status === "SECRETING" &&
+          <ThemedView type="backgroundElement" style={styles.stepContainer}>
+            <ThemedText nativeID="secretLebel">Secret:</ThemedText>
+            <TextInput
+              style={{
+                backgroundColor: Colors.dark.backgroundSelected,
+                borderRadius: Spacing.four,
+                paddingVertical: Spacing.two,
+                paddingHorizontal: Spacing.four,
+              }}
+              placeholder="Secret"
+              accessibilityLabel="secretLebel"
+              onSubmitEditing={(ev) => sendSecret(ev.nativeEvent.text)}
+            />
+          </ThemedView>
+        }
 
         {Platform.OS === 'web' && <WebBadge />}
       </SafeAreaView>
@@ -105,7 +109,8 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     alignSelf: 'stretch',
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
+    paddingVertical: Spacing.three,
     borderRadius: Spacing.four,
+    backgroundColor: Colors.dark.backgroundElement,
   },
 });
