@@ -6,7 +6,7 @@ syntax = "proto2";
 
 package example;
 
-message Message {
+message PairMessage {
   enum Status {
     STATUS_OK = 200;
     STATUS_ERROR = 400;

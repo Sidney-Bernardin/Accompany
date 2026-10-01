@@ -5,7 +5,7 @@
 /* eslint-disable */
 
 import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
-import type { Message as Message$1 } from "@bufbuild/protobuf";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file pair.proto.
@@ -13,9 +13,9 @@ import type { Message as Message$1 } from "@bufbuild/protobuf";
 export declare const file_pair: GenFile;
 
 /**
- * @generated from message example.Message
+ * @generated from message example.PairMessage
  */
-export declare type Message = Message$1<"example.Message"> & {
+export declare type PairMessage = Message<"example.PairMessage"> & {
   /**
    * @generated from field: required uint32 protocol_version = 1 [default = 1];
    */
@@ -24,9 +24,9 @@ export declare type Message = Message$1<"example.Message"> & {
   /**
    * Protocol status. Any status other than STATUS_OK implies a fault.
    *
-   * @generated from field: required example.Message.Status status = 2;
+   * @generated from field: required example.PairMessage.Status status = 2;
    */
-  status: Message_Status;
+  status: PairMessage_Status;
 
   /**
    * Initialization phase
@@ -71,15 +71,15 @@ export declare type Message = Message$1<"example.Message"> & {
 };
 
 /**
- * Describes the message example.Message.
- * Use `create(MessageSchema)` to create a new message.
+ * Describes the message example.PairMessage.
+ * Use `create(PairMessageSchema)` to create a new message.
  */
-export declare const MessageSchema: GenMessage<Message>;
+export declare const PairMessageSchema: GenMessage<PairMessage>;
 
 /**
- * @generated from enum example.Message.Status
+ * @generated from enum example.PairMessage.Status
  */
-export enum Message_Status {
+export enum PairMessage_Status {
   /**
    * @generated from enum value: STATUS_OK = 200;
    */
@@ -102,14 +102,14 @@ export enum Message_Status {
 }
 
 /**
- * Describes the enum example.Message.Status.
+ * Describes the enum example.PairMessage.Status.
  */
-export declare const Message_StatusSchema: GenEnum<Message_Status>;
+export declare const PairMessage_StatusSchema: GenEnum<PairMessage_Status>;
 
 /**
  * @generated from message example.PairingRequest
  */
-export declare type PairingRequest = Message$1<"example.PairingRequest"> & {
+export declare type PairingRequest = Message<"example.PairingRequest"> & {
   /**
    * String name of the service to pair with.  The name used should be an
    * established convention of the application protocol.
@@ -135,7 +135,7 @@ export declare const PairingRequestSchema: GenMessage<PairingRequest>;
 /**
  * @generated from message example.PairingRequestAck
  */
-export declare type PairingRequestAck = Message$1<"example.PairingRequestAck"> & {
+export declare type PairingRequestAck = Message<"example.PairingRequestAck"> & {
   /**
    * Descriptive name of the server.
    *
@@ -153,7 +153,7 @@ export declare const PairingRequestAckSchema: GenMessage<PairingRequestAck>;
 /**
  * @generated from message example.Options
  */
-export declare type Options = Message$1<"example.Options"> & {
+export declare type Options = Message<"example.Options"> & {
   /**
    * List of encodings this endpoint accepts when serving as an input device.
    *
@@ -185,7 +185,7 @@ export declare const OptionsSchema: GenMessage<Options>;
 /**
  * @generated from message example.Options.Encoding
  */
-export declare type Options_Encoding = Message$1<"example.Options.Encoding"> & {
+export declare type Options_Encoding = Message<"example.Options.Encoding"> & {
   /**
    * @generated from field: required example.Options.Encoding.EncodingType type = 1;
    */
@@ -266,7 +266,7 @@ export declare const Options_RoleTypeSchema: GenEnum<Options_RoleType>;
 /**
  * @generated from message example.Configuration
  */
-export declare type Configuration = Message$1<"example.Configuration"> & {
+export declare type Configuration = Message<"example.Configuration"> & {
   /**
    * The encoding to be used in this session.
    *
@@ -292,7 +292,7 @@ export declare const ConfigurationSchema: GenMessage<Configuration>;
 /**
  * @generated from message example.ConfigurationAck
  */
-export declare type ConfigurationAck = Message$1<"example.ConfigurationAck"> & {
+export declare type ConfigurationAck = Message<"example.ConfigurationAck"> & {
 };
 
 /**
@@ -304,7 +304,7 @@ export declare const ConfigurationAckSchema: GenMessage<ConfigurationAck>;
 /**
  * @generated from message example.Secret
  */
-export declare type Secret = Message$1<"example.Secret"> & {
+export declare type Secret = Message<"example.Secret"> & {
   /**
    * @generated from field: required bytes secret = 1;
    */
@@ -320,7 +320,7 @@ export declare const SecretSchema: GenMessage<Secret>;
 /**
  * @generated from message example.SecretAck
  */
-export declare type SecretAck = Message$1<"example.SecretAck"> & {
+export declare type SecretAck = Message<"example.SecretAck"> & {
   /**
    * @generated from field: required bytes secret = 1;
    */

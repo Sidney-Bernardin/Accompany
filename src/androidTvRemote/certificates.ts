@@ -3,7 +3,6 @@ import { Platform } from "react-native";
 
 import * as SecureStore from "@/secureStore";
 
-
 export async function loadCertificates(): Promise<SecureStore.Certificate> {
   const certificate = await SecureStore.getCertificate()
 
