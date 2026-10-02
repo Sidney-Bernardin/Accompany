@@ -1,18 +1,21 @@
 import forge from "node-forge"
 import { Platform } from "react-native";
 
-import * as SecureStore from "@/secureStore";
+import * as SecureStore from "expo-secure-store";
 
-export async function loadCertificates(): Promise<SecureStore.Certificate> {
-  const certificate = await SecureStore.getCertificate()
+export async function loadCertificates(): Promise<{ certPem: string, certPrivateKeyPem: string }> {
+  const [certPem, certPrivateKeyPem] = await Promise.all([
+    SecureStore.getItemAsync("accompany_cert"),
+    SecureStore.getItemAsync("accompany_cert_private_key"),
+  ])
 
   // Validate the certificate.
   try {
-    if (!certificate)
+    if (!certPem || !certPrivateKeyPem)
       throw Error()
 
     // Check PEM formatting. (throws on fail)
-    const cert = forge.pki.certificateFromPem(certificate.certPem)
+    const cert = forge.pki.certificateFromPem(certPem)
 
     // Check expiry.
     const deadline = cert.validity.notAfter.getTime() - (7 * 24 * 60 * 60 * 100) // Normal deadline with a 7 day buffer.
@@ -24,7 +27,7 @@ export async function loadCertificates(): Promise<SecureStore.Certificate> {
     return generateCertificate()
   }
 
-  return certificate
+  return { certPem, certPrivateKeyPem }
 }
 
 async function generateCertificate() {
@@ -55,12 +58,14 @@ async function generateCertificate() {
   // Sign the certificate.
   cert.sign(keys.privateKey, forge.md.sha256.create())
 
-  const certificate: SecureStore.Certificate = {
-    certPem: forge.pki.certificateToPem(cert),
-    certPrivateKeyPem: forge.pki.privateKeyToPem(keys.privateKey),
-  }
+  // Convert to PEM format.
+  const certPem = forge.pki.certificateToPem(cert)
+  const certPrivateKeyPem = forge.pki.privateKeyToPem(keys.privateKey)
 
-  await SecureStore.setCertificate(certificate)
+  await Promise.all([
+    SecureStore.setItemAsync("accompany_cert", forge.pki.certificateToPem(cert)),
+    SecureStore.setItemAsync("accompany_cert_private_key", forge.pki.privateKeyToPem(keys.privateKey)),
+  ])
 
-  return certificate
+  return { certPem, certPrivateKeyPem }
 }

@@ -6,13 +6,8 @@ const keys = [
 ] as const
 type key = typeof keys[number]
 
-export type Certificate = {
-  certPem: string,
-  certPrivateKeyPem: string,
-}
-
-export function setCertificate(cert: Certificate) {
-  return Promise.all([
+export async function setCertificate(cert: string, certPrivateKeyPem: string) {
+  await Promise.all([
     SecureStore.setItemAsync("accompany_cert" as key, cert.certPem),
     SecureStore.setItemAsync("accompany_cert_private_key" as key, cert.certPrivateKeyPem),
   ])

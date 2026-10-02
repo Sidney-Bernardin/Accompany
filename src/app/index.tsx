@@ -1,5 +1,5 @@
 import * as Device from 'expo-device';
-import { Platform, TextInput, StyleSheet } from 'react-native';
+import { Platform, TextInput, Button, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AnimatedIcon } from '@/components/animated-icon';
@@ -8,7 +8,7 @@ import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
 import { Colors, BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 
-import { useAndroidTvRemote } from '@/hooks/use-android-tv-remote';
+import { useTv } from '@/hooks/use-tv';
 
 
 function getDevMenuHint() {
@@ -31,14 +31,7 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
-  const { status, appState, client, sendSecret } = useAndroidTvRemote("10.10.8.61", 6467, {
-    onConnect() {
-      console.log("CONNECTED")
-    },
-    onClose() {
-      console.log("CLOSED")
-    },
-  })
+  const { status, error, sendSecret, sendKey } = useTv("10.10.8.53")
 
   return (
     <ThemedView style={styles.container}>
@@ -54,10 +47,14 @@ export default function HomeScreen() {
           {status}
         </ThemedText>
 
+        <ThemedText type="code" style={styles.code}>
+          {error}
+        </ThemedText>
+
         {
-          status === "SECRETING" &&
+          status === "PAIRING" &&
           <ThemedView type="backgroundElement" style={styles.stepContainer}>
-            <ThemedText nativeID="secretLebel">Secret:</ThemedText>
+            <ThemedText nativeID="codeLebel">Code:</ThemedText>
             <TextInput
               style={{
                 backgroundColor: Colors.dark.backgroundSelected,
@@ -65,10 +62,18 @@ export default function HomeScreen() {
                 paddingVertical: Spacing.two,
                 paddingHorizontal: Spacing.four,
               }}
-              placeholder="Secret"
-              accessibilityLabel="secretLebel"
+              placeholder="Code"
+              accessibilityLabel="codeLebel"
               onSubmitEditing={(ev) => sendSecret(ev.nativeEvent.text)}
             />
+          </ThemedView>
+        }
+
+        {
+          status === "PAIRED" &&
+          <ThemedView type="backgroundElement" style={styles.stepContainer}>
+            <Button onPress={() => sendKey("UP")} />
+            <Button onPress={() => sendKey("UP")} />
           </ThemedView>
         }
 
