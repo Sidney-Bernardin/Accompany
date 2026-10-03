@@ -88,5 +88,23 @@ export class RemoteHandler implements Handler<RemoteMessage> {
           val1: msg.remotePingRequest.val1,
         }
       }))
+
+    if (msg.remoteConfigure)
+      client.write(encodeMsg(RemoteMessageSchema, {
+        $typeName: "example.RemoteMessage",
+        remoteConfigure: {
+          $typeName: "example.RemoteConfigure",
+          code1: 622,
+          deviceInfo: {
+            $typeName: "example.RemoteDeviceInfo",
+            model: "mymodel",
+            vendor: "myvender",
+            unknown1: 1,
+            unknown2: "2",
+            packageName: "mypackagename",
+            appVersion: "1.0.0",
+          }
+        }
+      }))
   }
 }

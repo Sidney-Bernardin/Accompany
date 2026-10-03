@@ -6,17 +6,17 @@ import { loadCertificates } from "./certificates"
 import { encodeMsg } from "./serial"
 import { PairMessage_Status, PairMessageSchema } from "./gen/proto/pair_pb"
 import { Handler, PairHandler } from "./handlers"
+import { RemoteDirection, RemoteKeyCode, RemoteMessageSchema } from "./gen/proto/remote_pb"
 
 let client: Tcp.TLSSocket | undefined
 let buffer: Buffer = Buffer.alloc(0)
 
 export const cfg = {
   handler: {} as Handler<any>,
-  onConnected() { },
   onDisconnected() { },
+  onPairing() { },
+  onReady() { },
   onError(err: Error) { },
-  onPaired() { },
-  onAwaitingSecret() { },
 }
 
 export async function connect(host: string, port: 6467 | 6466) {
@@ -52,10 +52,10 @@ export async function connect(host: string, port: 6467 | 6466) {
 function onConnected() {
   if (!client) throw Error("client is undefined")
 
-  console.log("CONNECTED")
-  cfg.onConnected()
+  if (cfg.handler instanceof PairHandler) {
+    console.log("PAIRING")
+    cfg.onPairing()
 
-  if (cfg.handler instanceof PairHandler)
     client.write(encodeMsg(PairMessageSchema, {
       $typeName: "example.PairMessage",
       protocolVersion: 2,
@@ -66,6 +66,9 @@ function onConnected() {
         clientName: "TestClientName",
       },
     }), undefined)
+  } else {
+    cfg.onReady()
+  }
 }
 
 function handlePacket(packet: Uint8Array) {
@@ -117,9 +120,27 @@ export async function sendSecret(code: string) {
   }))
 }
 
-export function sendKey(key: string) {
+export function sendKey(key: RemoteKeyCode) {
   if (!client) throw Error("client is undefined")
 
+  client.write(encodeMsg(RemoteMessageSchema, {
+    $typeName: "example.RemoteMessage",
+    remoteKeyInject: {
+      $typeName: "example.RemoteKeyInject",
+      direction: RemoteDirection.SHORT,
+      keyCode: key,
+    }
+  }))
+}
+
+export function openApp(link: string) {
+  client?.write(encodeMsg(RemoteMessageSchema, {
+    $typeName: "example.RemoteMessage",
+    remoteAppLinkLaunchRequest: {
+      $typeName: "example.RemoteAppLinkLaunchRequest",
+      appLink: link,
+    }
+  }))
 }
 
 export function disconnect() {

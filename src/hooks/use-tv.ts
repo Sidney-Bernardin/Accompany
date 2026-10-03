@@ -4,36 +4,39 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import * as Tv from "@/tv"
 import { RemoteHandler } from "@/tv/handlers"
 import { PairHandler } from "@/tv/handlers"
+import { RemoteKeyCode } from "@/tv/gen/proto/remote_pb"
 
 export function useTv(host: string) {
-  const [status, setStatus] = useState<"DISCONNECTED" | "CONNECTING" | "PAIRING" | "PAIRED">("DISCONNECTED")
+  const [status, setStatus] = useState<"DISCONNECTED" | "PAIRING" | "AWAITING_SECRET" | "READY">("DISCONNECTED")
   const [error, setError] = useState<string | undefined>(undefined)
 
   const appState = useRef(AppState.currentState)
 
   const sendSecret = useCallback((code: string) => Tv.sendSecret(code), [])
-  const sendKey = useCallback((key: string) => Tv.sendKey(key), [])
+  const sendKey = useCallback((key: RemoteKeyCode) => Tv.sendKey(key), [])
+  const openApp = useCallback((link: string) => Tv.openApp(link), [])
 
   useEffect(() => {
-    Tv.cfg.onConnected = () => setStatus("PAIRING")
+    Tv.cfg.onPairing = () => setStatus("PAIRING")
     Tv.cfg.onDisconnected = () => setStatus("DISCONNECTED")
+    Tv.cfg.onReady = () => setStatus("READY")
     Tv.cfg.onError = (err) => setError(err.message)
-    Tv.cfg.onAwaitingSecret = () => setStatus("PAIRING")
-    Tv.cfg.onPaired = () => {
-      console.log("PAIRED")
-      Tv.disconnect()
-      Tv.cfg.handler = new RemoteHandler()
-      Tv.cfg.onConnected = () => setStatus("PAIRED")
-      Tv.connect(host, 6466)
-    }
-    Tv.cfg.handler = new PairHandler({ onAwaitingSecret: Tv.cfg.onAwaitingSecret, onPaired: Tv.cfg.onPaired })
+    Tv.cfg.handler = new RemoteHandler() // TODO: dynamic handler
+    // Tv.cfg.handler = new PairHandler({
+    //   onAwaitingSecret: () => setStatus("PAIRING"),
+    //   onPaired: () => {
+    //     Tv.disconnect()
+    //     Tv.cfg.handler = new RemoteHandler()
+    //     Tv.connect(host, 6466)
+    //   },
+    // })
 
-    Tv.connect(host, 6467)
+    Tv.connect(host, 6466) // TODO: dynamic port
 
     // Connect and disconnect when the app state changes.
     const sub = AppState.addEventListener("change", (nextAppState) => {
       if (appState.current.match("/inactive|background/") && nextAppState == "active")
-        Tv.connect(host, 6467)
+        Tv.connect(host, 6466) // TODO: dynamic port
       if (nextAppState.match("/inactive|background/"))
         Tv.disconnect()
     })
@@ -44,5 +47,5 @@ export function useTv(host: string) {
     }
   }, [])
 
-  return { status, error, sendSecret }
+  return { status, error, sendSecret, sendKey, openApp }
 }

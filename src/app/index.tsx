@@ -8,6 +8,7 @@ import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
 import { Colors, BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 
+import { RemoteKeyCode } from '@/tv/gen/proto/remote_pb';
 import { useTv } from '@/hooks/use-tv';
 
 
@@ -31,7 +32,7 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
-  const { status, error, sendSecret, sendKey } = useTv("10.10.8.53")
+  const { status, error, sendSecret, sendKey, openApp } = useTv("10.10.8.53")
 
   return (
     <ThemedView style={styles.container}>
@@ -70,10 +71,12 @@ export default function HomeScreen() {
         }
 
         {
-          status === "PAIRED" &&
+          status === "READY" &&
           <ThemedView type="backgroundElement" style={styles.stepContainer}>
-            <Button onPress={() => sendKey("UP")} />
-            <Button onPress={() => sendKey("UP")} />
+            <Button onPress={() => sendKey(RemoteKeyCode.KEYCODE_DPAD_UP)} title='UP' />
+            <Button onPress={() => sendKey(RemoteKeyCode.KEYCODE_DPAD_DOWN)} title='DOWN' />
+            <Button onPress={() => openApp("https://youtube.com")} title='YouTube' />
+            <Button onPress={() => openApp("https://www.disneyplus.com/browse/entity-e88d028f-d88c-4fda-85ad-adf51a87fabc?sharesource=Android")} title='dallas vs valkyries' />
           </ThemedView>
         }
 
@@ -106,9 +109,6 @@ const styles = StyleSheet.create({
   },
   title: {
     textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
   },
   stepContainer: {
     gap: Spacing.three,
