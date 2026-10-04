@@ -31,6 +31,7 @@ export async function loadCertificates(): Promise<{ certPem: string, certPrivate
 }
 
 async function generateCertificate() {
+  console.log("CERTIFICATE generateing...")
 
   // Create public and private keys.
   const keys = forge.pki.rsa.generateKeyPair(2048, 65537)
@@ -66,6 +67,8 @@ async function generateCertificate() {
     SecureStore.setItemAsync("accompany_cert", forge.pki.certificateToPem(cert)),
     SecureStore.setItemAsync("accompany_cert_private_key", forge.pki.privateKeyToPem(keys.privateKey)),
   ])
+
+  console.log("CERTIFICATE generated!")
 
   return { certPem, certPrivateKeyPem }
 }

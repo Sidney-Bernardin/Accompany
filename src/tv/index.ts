@@ -5,22 +5,28 @@ import forge from "node-forge"
 import { loadCertificates } from "./certificates"
 import { encodeMsg } from "./serial"
 import { PairMessage_Status, PairMessageSchema } from "./gen/proto/pair_pb"
-import { Handler, PairHandler } from "./handlers"
+import { Handler, PairHandler, RemoteHandler } from "./handlers"
 import { RemoteDirection, RemoteKeyCode, RemoteMessageSchema } from "./gen/proto/remote_pb"
+import { TvError } from "./error"
 
 let client: Tcp.TLSSocket | undefined
 let buffer: Buffer = Buffer.alloc(0)
+let handler: Handler<any> = PairHandler
 
 export const cfg = {
-  handler: {} as Handler<any>,
+  onConnecting() { },
   onDisconnected() { },
-  onPairing() { },
-  onReady() { },
-  onError(err: Error) { },
+  onTvError(err: TvError) { },
 }
 
 export async function connect(host: string, port: 6467 | 6466) {
-  if (client) throw Error("client is defined")
+  if (client)
+    disconnect()
+
+  cfg.onConnecting()
+
+  if (port === 6467) handler = PairHandler
+  else if (port === 6466) handler = RemoteHandler
 
   const { certPem, certPrivateKeyPem } = await loadCertificates()
 
@@ -52,9 +58,8 @@ export async function connect(host: string, port: 6467 | 6466) {
 function onConnected() {
   if (!client) throw Error("client is undefined")
 
-  if (cfg.handler instanceof PairHandler) {
+  if (handler === PairHandler) {
     console.log("PAIRING")
-    cfg.onPairing()
 
     client.write(encodeMsg(PairMessageSchema, {
       $typeName: "example.PairMessage",
@@ -67,7 +72,7 @@ function onConnected() {
       },
     }), undefined)
   } else {
-    cfg.onReady()
+    console.log("CONFIGURING")
   }
 }
 
@@ -75,16 +80,18 @@ function handlePacket(packet: Uint8Array) {
   if (!client) throw Error("client is undefined")
 
   buffer = Buffer.concat([buffer, packet])
-  const [msg, len] = cfg.handler.decode(buffer)
+  const [msg, len] = handler.decode(buffer)
   if (!msg)
     return
 
   console.debug(`< ${JSON.stringify(msg)}`)
 
   try {
-    cfg.handler.handle(client, msg)
+    handler.handle(client, msg)
   } catch (err) {
-    cfg.onError(err as Error)
+    if (err instanceof TvError)
+      cfg.onTvError(err)
+    else throw err
   } finally {
     buffer = buffer.subarray(len)
   }
@@ -144,8 +151,10 @@ export function openApp(link: string) {
 }
 
 export function disconnect() {
+  if (!client) return
+
   console.log("CLOSED")
-  client?.destroy()
+  client.destroy()
   client = undefined
   buffer = Buffer.alloc(0)
   cfg.onDisconnected()

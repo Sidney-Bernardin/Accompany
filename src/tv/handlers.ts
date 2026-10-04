@@ -4,34 +4,28 @@ import { Buffer } from "@craftzdog/react-native-buffer"
 import { PairMessage_Status, PairMessageSchema, Options_Encoding_EncodingType, Options_RoleType, PairMessage } from "@/tv/gen/proto/pair_pb"
 import { decodeMsg, encodeMsg } from "./serial"
 import { RemoteMessage, RemoteMessageSchema } from "./gen/proto/remote_pb"
+import { TvError } from "./error"
+
+
+export const cfg = {
+  onPaired: () => { },
+  onAwaitingSecret: () => { },
+  onConfigured: () => { },
+}
 
 export interface Handler<T> {
   decode(msg: Buffer): [T | undefined, number]
   handle(client: Tcp.Socket, msg: T): void
 }
 
-export class PairHandler implements Handler<PairMessage> {
-  onPaired: () => void
-  onAwaitingSecret: () => void
+export const PairHandler: Handler<PairMessage> = {
+  decode: (msg) => decodeMsg(PairMessageSchema, msg),
 
-  constructor(opts: { onPaired: () => void, onAwaitingSecret: () => void }) {
-    this.onPaired = opts.onPaired
-    this.onAwaitingSecret = opts.onAwaitingSecret
-  }
+  handle(client, msg) {
+    if (msg.status !== PairMessage_Status.OK)
+      throw new TvError(msg.status)
 
-  decode(msg: Buffer): [PairMessage | undefined, number] {
-    return decodeMsg(PairMessageSchema, msg)
-  }
-
-  handle(client: Tcp.Socket, msg: PairMessage) {
-    if (msg.status !== PairMessage_Status.OK) {
-      if (msg.status === PairMessage_Status.BAD_SECRET)
-        throw Error("BAD CODE")
-
-      throw Error("ERROR")
-    }
-
-    if (msg.pairingRequestAck)
+    else if (msg.pairingRequestAck)
       client.write(encodeMsg(PairMessageSchema, {
         $typeName: "example.PairMessage",
         protocolVersion: 2,
@@ -67,19 +61,19 @@ export class PairHandler implements Handler<PairMessage> {
       }))
 
     else if (msg.configurationAck)
-      this.onAwaitingSecret()
+      cfg.onAwaitingSecret()
 
-    else if (msg.secretAck)
-      this.onPaired()
+    else if (msg.secretAck) {
+      console.log("PAIRED")
+      cfg.onPaired()
+    }
   }
 }
 
-export class RemoteHandler implements Handler<RemoteMessage> {
-  decode(msg: Buffer): [RemoteMessage | undefined, number] {
-    return decodeMsg(RemoteMessageSchema, msg)
-  }
+export const RemoteHandler: Handler<RemoteMessage> = {
+  decode: (msg) => decodeMsg(RemoteMessageSchema, msg),
 
-  handle(client: Tcp.Socket, msg: RemoteMessage) {
+  handle(client, msg) {
     if (msg.remotePingRequest)
       client.write(encodeMsg(RemoteMessageSchema, {
         $typeName: "example.RemoteMessage",
@@ -89,7 +83,7 @@ export class RemoteHandler implements Handler<RemoteMessage> {
         }
       }))
 
-    if (msg.remoteConfigure)
+    else if (msg.remoteConfigure)
       client.write(encodeMsg(RemoteMessageSchema, {
         $typeName: "example.RemoteMessage",
         remoteConfigure: {
@@ -106,5 +100,10 @@ export class RemoteHandler implements Handler<RemoteMessage> {
           }
         }
       }))
+
+    else if (msg.remoteSetActive) {
+      console.log("CONFIGURED")
+      cfg.onConfigured()
+    }
   }
 }
