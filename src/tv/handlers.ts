@@ -104,6 +104,14 @@ export const RemoteHandler: Handler<RemoteMessage> = {
     else if (msg.remoteSetActive) {
       console.log("CONFIGURED")
       cfg.onConfigured()
+
+      client?.write(encodeMsg(RemoteMessageSchema, {
+        $typeName: "example.RemoteMessage",
+        remoteSetActive: {
+          $typeName: "example.RemoteSetActive",
+          active: 622,
+        }
+      }))
     }
   }
 }
