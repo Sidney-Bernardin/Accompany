@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { VolumeManager } from 'react-native-volume-manager';
 
 import ArrowBack from "@expo/material-symbols/arrow_back.xml"
 import Home from "@expo/material-symbols/home.xml"
 import NoSound from "@expo/material-symbols/no_sound.xml"
 
-import { useTv, PairMessage_Status, RemoteKeyCode } from '@/tv';
+import { useTv, PairMessage_Status, RemoteKeyCode, sendKey, RemoteDirection } from '@/tv';
 
 import Apps from '@/components/Apps.android';
 import RemoteButton from '@/components/RemoteButton.android';
@@ -20,6 +21,25 @@ import TouchPad from '@/components/TouchPad.android';
 export default function RemoteScreen() {
   const { host } = useLocalSearchParams()
   const { tvStatus, tvError } = useTv(host as string)
+  const volume = useRef(0.5)
+
+  useEffect(() => {
+    VolumeManager.getVolume()
+      .then((v) => volume.current = v.volume)
+
+    const listiner = VolumeManager.addVolumeListener((res) => {
+      if (volume.current < res.volume)
+        sendKey(RemoteKeyCode.KEYCODE_VOLUME_UP, RemoteDirection.SHORT)
+      else if (volume.current > res.volume)
+        sendKey(RemoteKeyCode.KEYCODE_VOLUME_DOWN, RemoteDirection.SHORT)
+
+      volume.current = res.volume
+    })
+
+    return () => {
+      listiner.remove()
+    }
+  }, [])
 
   return (
     <GestureHandlerRootView>
