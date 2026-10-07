@@ -2,7 +2,7 @@ import { Buffer } from "@craftzdog/react-native-buffer"
 import * as PB from "@bufbuild/protobuf"
 import * as Varint from "@/varint"
 
-export function encodeMsg<Desc extends PB.DescMessage>(schema: Desc, protoMsg: PB.MessageShape<Desc>): Uint8Array {
+export function encode<Desc extends PB.DescMessage>(schema: Desc, protoMsg: PB.MessageShape<Desc>): Uint8Array {
   console.debug(`> ${JSON.stringify(protoMsg)}`)
 
   const msg = PB.toBinary(schema, protoMsg)
@@ -12,7 +12,7 @@ export function encodeMsg<Desc extends PB.DescMessage>(schema: Desc, protoMsg: P
 }
 
 // Return the decoded message, it's length, and it's length's byte-count.
-export function decodeMsg<Desc extends PB.DescMessage>(schema: Desc, msg: Buffer): [PB.MessageShape<Desc> | undefined, number] {
+export function decode<Desc extends PB.DescMessage>(schema: Desc, msg: Buffer): [PB.MessageShape<Desc> | undefined, number] {
   const [len, offset] = Varint.decode(msg)
   if (len === -1 || (msg.length < offset + len))
     return [undefined, -1]

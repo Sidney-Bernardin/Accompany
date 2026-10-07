@@ -2,16 +2,11 @@ import Tcp from "react-native-tcp-socket"
 import { Buffer } from "@craftzdog/react-native-buffer"
 
 import { PairMessage_Status, PairMessageSchema, Options_Encoding_EncodingType, Options_RoleType, PairMessage } from "@/tv/gen/proto/pair_pb"
-import { decodeMsg, encodeMsg } from "./serial"
 import { RemoteMessage, RemoteMessageSchema } from "./gen/proto/remote_pb"
-import { TvError } from "./error"
+import { decode, encode } from "./serial"
+import { TvError } from "./errors"
+import callbacks from "./callbacks"
 
-
-export const cfg = {
-  onPaired: () => { },
-  onAwaitingSecret: () => { },
-  onConfigured: () => { },
-}
 
 export interface Handler<T> {
   decode(msg: Buffer): [T | undefined, number]
@@ -19,14 +14,14 @@ export interface Handler<T> {
 }
 
 export const PairHandler: Handler<PairMessage> = {
-  decode: (msg) => decodeMsg(PairMessageSchema, msg),
+  decode: (msg) => decode(PairMessageSchema, msg),
 
   handle(client, msg) {
     if (msg.status !== PairMessage_Status.OK)
       throw new TvError(msg.status)
 
     else if (msg.pairingRequestAck)
-      client.write(encodeMsg(PairMessageSchema, {
+      client.write(encode(PairMessageSchema, {
         $typeName: "example.PairMessage",
         protocolVersion: 2,
         status: PairMessage_Status.OK,
@@ -45,7 +40,7 @@ export const PairHandler: Handler<PairMessage> = {
       }))
 
     else if (msg.options)
-      client.write(encodeMsg(PairMessageSchema, {
+      client.write(encode(PairMessageSchema, {
         $typeName: "example.PairMessage",
         protocolVersion: 2,
         status: PairMessage_Status.OK,
@@ -61,21 +56,21 @@ export const PairHandler: Handler<PairMessage> = {
       }))
 
     else if (msg.configurationAck)
-      cfg.onAwaitingSecret()
+      callbacks.onAwaitingSecret()
 
     else if (msg.secretAck) {
       console.log("PAIRED")
-      cfg.onPaired()
+      callbacks.onPaired()
     }
   }
 }
 
 export const RemoteHandler: Handler<RemoteMessage> = {
-  decode: (msg) => decodeMsg(RemoteMessageSchema, msg),
+  decode: (msg) => decode(RemoteMessageSchema, msg),
 
   handle(client, msg) {
     if (msg.remotePingRequest)
-      client.write(encodeMsg(RemoteMessageSchema, {
+      client.write(encode(RemoteMessageSchema, {
         $typeName: "example.RemoteMessage",
         remotePingResponse: {
           $typeName: "example.RemotePingResponse",
@@ -84,7 +79,7 @@ export const RemoteHandler: Handler<RemoteMessage> = {
       }))
 
     else if (msg.remoteConfigure)
-      client.write(encodeMsg(RemoteMessageSchema, {
+      client.write(encode(RemoteMessageSchema, {
         $typeName: "example.RemoteMessage",
         remoteConfigure: {
           $typeName: "example.RemoteConfigure",
@@ -102,16 +97,19 @@ export const RemoteHandler: Handler<RemoteMessage> = {
       }))
 
     else if (msg.remoteSetActive) {
-      console.log("CONFIGURED")
-      cfg.onConfigured()
-
-      client?.write(encodeMsg(RemoteMessageSchema, {
+      client.write(encode(RemoteMessageSchema, {
         $typeName: "example.RemoteMessage",
         remoteSetActive: {
           $typeName: "example.RemoteSetActive",
           active: 622,
         }
       }))
+
+      console.log("CONFIGURED")
+      callbacks.onConfigured()
     }
+
+    else if (msg.remoteImeBatchEdit)
+      callbacks.onTexting()
   }
 }

@@ -1,105 +1,31 @@
-import { Platform, TextInput, Button, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCallback } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { useZeroconf } from "react-native-zeroconf"
+import { useFocusEffect } from 'expo-router';
+import { GestureHandlerRootView } from "react-native-gesture-handler"
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { Colors, BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import ServiceList from '@/components/ServiceList.android';
+import ErrorComponent from '@/components/ErrorMessage.android';
 
-import { RemoteKeyCode } from '@/tv/gen/proto/remote_pb';
-import { useTv } from '@/hooks/use-tv';
-import { PairMessage_Status } from '@/tv/gen/proto/pair_pb';
+export default function IndexScreen() {
+  const { services, isScanning, error, restart, stop } = useZeroconf({ type: "androidtvremote2" })
 
-
-export default function HomeScreen() {
-  const { tvStatus, tvError, sendSecret, sendKey, openApp } = useTv("10.10.8.52")
+  useFocusEffect(useCallback(() => {
+    console.log("restart")
+    restart()
+    return () => {
+      console.log("stop")
+      stop()
+    }
+  }, []))
 
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Accompany
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code">
-          {tvStatus}
-        </ThemedText>
-
-        {
-          tvError &&
-          <ThemedText type="code">
-            {tvError.status === PairMessage_Status.BAD_SECRET ? "Bad secret" : "Error"}
-          </ThemedText>
-        }
-
-        {
-          tvStatus === "AWAITING_SECRET" &&
-          <ThemedView type="backgroundElement" style={styles.stepContainer}>
-            <ThemedText nativeID="codeLebel">Code:</ThemedText>
-            <TextInput
-              style={{
-                backgroundColor: Colors.dark.backgroundSelected,
-                borderRadius: Spacing.four,
-                paddingVertical: Spacing.two,
-                paddingHorizontal: Spacing.four,
-              }}
-              placeholder="Code"
-              accessibilityLabel="codeLebel"
-              onSubmitEditing={(ev) => sendSecret(ev.nativeEvent.text)}
-            />
-          </ThemedView>
-        }
-
-        {
-          // tvStatus === "CONFIGURED" &&
-          <ThemedView type="backgroundElement" style={styles.stepContainer}>
-            <Button onPress={() => sendKey(RemoteKeyCode.KEYCODE_DPAD_UP)} title='UP' />
-            <Button onPress={() => sendKey(RemoteKeyCode.KEYCODE_DPAD_DOWN)} title='DOWN' />
-            <Button onPress={() => openApp("https://youtube.com")} title='YouTube' />
-            <Button onPress={() => openApp("https://www.disneyplus.com/browse/entity-e88d028f-d88c-4fda-85ad-adf51a87fabc?sharesource=Android")} title='dallas vs valkyries' />
-          </ThemedView>
-        }
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+    <View>
+      {
+        error
+          ? <ErrorComponent error={error.message} />
+          : <ServiceList services={services} refreshing={isScanning} onRefresh={restart} />
+      }
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
-    borderRadius: Spacing.four,
-    backgroundColor: Colors.dark.backgroundElement,
-  },
-});

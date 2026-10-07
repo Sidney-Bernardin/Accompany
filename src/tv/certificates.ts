@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 
 import * as SecureStore from "expo-secure-store";
 
+
 export async function loadCertificates(): Promise<{ certPem: string, certPrivateKeyPem: string }> {
   const [certPem, certPrivateKeyPem] = await Promise.all([
     SecureStore.getItemAsync("accompany_cert"),
