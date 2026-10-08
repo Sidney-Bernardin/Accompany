@@ -14,10 +14,10 @@ type App = {
 }
 
 const defualtApps = [
-  { name: "YouTube", link: "https://youtube.com" },
+  { name: "YouTube", link: "https://youtube.com/watch/Aq5WXmQQooo" },
   { name: "Disney+", link: "https://www.disneyplus.com" },
   { name: "Netflix", link: "https://www.netflix.com/watch/70202141" },
-  { name: "Empty", link: "https://foobarbaz.com" },
+  { name: "Prime", link: "https://watch.amazon.com/B08WJQ3XP5" },
   { name: "Empty", link: "https://foobarbaz.com" },
   { name: "Empty", link: "https://foobarbaz.com" },
   { name: "Empty", link: "https://foobarbaz.com" },
