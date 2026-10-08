@@ -27,7 +27,7 @@ const defualtApps = [
 ] as const
 
 export default function Apps(props: { style: StyleProp<ViewStyle> }) {
-  const [apps, setApps] = useState<App[]>(() => JSON.parse(SecureStore.getItem("apps") || "[]"))
+  const [apps, setApps] = useState<App[]>(() => JSON.parse(SecureStore.getItem("apps") || JSON.stringify(defualtApps)))
   const [selectedApp, setSelectedApp] = useState<number>(-1)
 
   const name = useNativeState("")
