@@ -1,15 +1,15 @@
-import { useCallback, useRef, useState } from "react"
-import { Text, View, StyleProp, ViewStyle } from "react-native"
-import { GestureDetector, useExclusiveGestures, usePanGesture, useSimultaneousGestures, useTapGesture } from "react-native-gesture-handler"
+import { useCallback } from "react"
+import { View, StyleProp, ViewStyle } from "react-native"
+import { GestureDetector, useExclusiveGestures, useLongPressGesture, usePanGesture } from "react-native-gesture-handler"
 import { useSharedValue } from "react-native-reanimated"
 
 import { RemoteDirection, RemoteKeyCode, sendKey } from "@/tv"
 
 export default function TouchPad(props: { style: StyleProp<ViewStyle> }) {
-  const tap = useTapGesture({
+  const longPress = useLongPressGesture({
     runOnJS: true,
-    onActivate: () => sendKey(RemoteKeyCode.KEYCODE_DPAD_CENTER, RemoteDirection.START_LONG),
-    onDeactivate: () => sendKey(RemoteKeyCode.KEYCODE_DPAD_CENTER, RemoteDirection.END_LONG),
+    onTouchesDown: () => sendKey(RemoteKeyCode.KEYCODE_DPAD_CENTER, RemoteDirection.START_LONG),
+    onTouchesUp: () => sendKey(RemoteKeyCode.KEYCODE_DPAD_CENTER, RemoteDirection.END_LONG),
   })
 
   const vecterToDir = useCallback((x: number, y: number): RemoteKeyCode | undefined => {
@@ -41,7 +41,7 @@ export default function TouchPad(props: { style: StyleProp<ViewStyle> }) {
     },
   })
 
-  const gestures = useExclusiveGestures(pan, tap)
+  const gestures = useExclusiveGestures(pan, longPress)
 
   return (
     <GestureDetector gesture={gestures}>

@@ -37,6 +37,7 @@
       ],
       "expo-secure-store",
       "expo-build-properties",
+      "react-native-quick-crypto"
     ],
     "experiments": {
       "typedRoutes": true,

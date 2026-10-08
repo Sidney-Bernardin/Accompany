@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import { useKeepAwake } from "expo-keep-awake"
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { VolumeManager } from 'react-native-volume-manager';
@@ -16,9 +17,12 @@ import RemoteButton from '@/components/RemoteButton.android';
 import CodeForm from '@/components/CodeForm.android';
 import ErrorMessage from '@/components/ErrorMessage.android';
 import TouchPad from '@/components/TouchPad.android';
+import Spinner from '@/components/Spinner.android';
 
 
 export default function RemoteScreen() {
+  useKeepAwake()
+
   const { host } = useLocalSearchParams()
   const { tvStatus, tvError } = useTv(host as string)
   const volume = useRef(0.5)
@@ -48,7 +52,12 @@ export default function RemoteScreen() {
         flexDirection: "column",
         height: "100%"
       }}>
-        {tvStatus !== "CONFIGURED" && <Text>Status: {tvStatus}</Text>}
+        {
+          tvStatus === "CONNECTING" &&
+          <View style={{ position: "fixed", display: "flex", width: "100%", height: "100%", justifyContent: "center", alignItems: "center" }}>
+            <Spinner style={{ position: "absolute" }} />
+          </View>
+        }
 
         {
           tvError &&

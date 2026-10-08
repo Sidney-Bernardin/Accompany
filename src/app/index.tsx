@@ -1,8 +1,7 @@
 import { useCallback } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { View } from 'react-native';
 import { useZeroconf } from "react-native-zeroconf"
 import { useFocusEffect } from 'expo-router';
-import { GestureHandlerRootView } from "react-native-gesture-handler"
 
 import ServiceList from '@/components/ServiceList.android';
 import ErrorComponent from '@/components/ErrorMessage.android';

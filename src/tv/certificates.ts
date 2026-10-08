@@ -1,5 +1,6 @@
 import forge from "node-forge"
 import { Platform } from "react-native";
+import QuickCrypto, { CryptoKey } from "react-native-quick-crypto"
 
 import * as SecureStore from "expo-secure-store";
 
@@ -35,11 +36,26 @@ async function generateCertificate() {
   console.log("CERTIFICATE generateing...")
 
   // Create public and private keys.
-  const keys = forge.pki.rsa.generateKeyPair(2048, 65537)
+  const keys = await new Promise<[string, string]>((resolve, reject) =>
+    QuickCrypto.generateKeyPair("rsa",
+      {
+        modulusLength: 2048,
+        publicExponent: 65537,
+        publicKeyEncoding: { type: "pkcs1", format: "pem" },
+        privateKeyEncoding: { type: "pkcs1", format: "pem" },
+      },
+      (err, publicKey, privateKey) =>
+        err ? reject(err) : resolve([
+          publicKey as string,
+          privateKey as string,
+        ])))
+
+  const publicKey = forge.pki.publicKeyFromPem(keys[0] as string)
+  const privateKey = forge.pki.privateKeyFromPem(keys[1] as string)
 
   // Create certificate.
   const cert = forge.pki.createCertificate()
-  cert.publicKey = keys.publicKey
+  cert.publicKey = publicKey
   cert.serialNumber = forge.util.bytesToHex(forge.random.getBytesSync(16))
   cert.validity.notBefore = new Date()
   cert.validity.notAfter = new Date()
@@ -58,15 +74,15 @@ async function generateCertificate() {
   ])
 
   // Sign the certificate.
-  cert.sign(keys.privateKey, forge.md.sha256.create())
+  cert.sign(privateKey, forge.md.sha256.create())
 
   // Convert to PEM format.
   const certPem = forge.pki.certificateToPem(cert)
-  const certPrivateKeyPem = forge.pki.privateKeyToPem(keys.privateKey)
+  const certPrivateKeyPem = forge.pki.privateKeyToPem(privateKey)
 
   await Promise.all([
     SecureStore.setItemAsync("accompany_cert", forge.pki.certificateToPem(cert)),
-    SecureStore.setItemAsync("accompany_cert_private_key", forge.pki.privateKeyToPem(keys.privateKey)),
+    SecureStore.setItemAsync("accompany_cert_private_key", forge.pki.privateKeyToPem(privateKey)),
   ])
 
   console.log("CERTIFICATE generated!")

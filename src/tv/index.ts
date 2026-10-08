@@ -32,7 +32,7 @@ export function useTv(host: string) {
     connect(host, 6466).then(() => {
       setTimeout(() => {
         console.debug(`TIMEOUT during ${tvStatusRef.current}`)
-        if (tvStatusRef.current === "CONNECTING")
+        if (tvStatusRef.current !== "CONFIGURED")
           connect(host, 6467)
       }, 1000)
     })
