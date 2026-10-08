@@ -14,7 +14,7 @@ export default function CodeForm() {
           <Text>Code</Text>
         </TextField.Label>
         <TextField.Placeholder>
-          <Text>It should be on you TV right now!</Text>
+          <Text>It should be on your TV right now!</Text>
         </TextField.Placeholder>
       </OutlinedTextField>
     </Host >
